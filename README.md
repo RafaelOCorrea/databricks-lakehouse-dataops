@@ -14,18 +14,18 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 
 ```mermaid
 flowchart TD
-    RAW["Volume Unity Catalog (df_sales.csv)"]
-    B1["Bronze: sales_raw (Auditoria)"]
-    V_CLEAN["Silver View: sales_cleaned_view"]
-    D_PROD["Silver: dim_produto"]
-    D_CLI["Silver: dim_cliente"]
-    D_LOC["Silver: dim_localizacao"]
-    D_ENV["Silver: dim_modo_envio"]
-    F_VENDAS["Silver: ft_vendas (Fato)"]
-    G_CAT["Gold: vendas_por_categoria"]
-    G_REG["Gold: desempenho_regional"]
-    G_CLI["Gold: metrica_clientes"]
-    BI["Dashboards / Analytics"]
+    RAW[Volume Unity Catalog - df_sales.csv]
+    B1[Bronze - sales_raw com Auditoria]
+    V_CLEAN[Silver View - Limpeza e Deduplicacao]
+    D_PROD[Silver - dim_produto]
+    D_CLI[Silver - dim_cliente]
+    D_LOC[Silver - dim_localizacao]
+    D_ENV[Silver - dim_modo_envio]
+    F_VENDAS[Silver - ft_vendas Fato]
+    G_CAT[Gold - vendas_por_categoria]
+    G_REG[Gold - desempenho_regional]
+    G_CLI[Gold - metrica_clientes]
+    BI[Dashboards e Analytics]
 
     RAW --> B1
     B1 --> V_CLEAN
@@ -59,8 +59,8 @@ Para garantir confiabilidade aos times de negócio e analistas, o pipeline possu
 | **Silver** | `ft_vendas` | `valid_positive_quantity` | `@dlt.expect_or_drop` | Filtrar quantidades menores ou iguais a zero. |
 | **Silver** | `ft_vendas` | `valid_discount_range` | `@dlt.expect` | Monitorar descontos fora da faixa padrão (0 a 100%). |
 | **Silver** | `ft_vendas` | `valid_dates_chronology` | `@dlt.expect` | Validar se a data de envio é posterior ou igual à data do pedido. |
-| **Silver** | Dimensões | `valid_*_id` / `valid_location` | `@dlt.expect_or_drop` | Preservar integridade referencial nas dimensões. |
-| **Gold** | Data Marts | `valid_*_revenue` | `@dlt.expect` | Assegurar integridade dos KPIs agregados de receita. |
+| **Silver** | Dimensões | `valid_keys` | `@dlt.expect_or_drop` | Preservar integridade referencial nas dimensões. |
+| **Gold** | Data Marts | `valid_revenue` | `@dlt.expect` | Assegurar integridade dos KPIs agregados de receita. |
 
 ### 📈 Resultados Reais de Qualidade de Dados:
 * **Taxa de Conformidade:** **99,4%** (50.951 registros aprovados e materializados)
@@ -90,10 +90,10 @@ O projeto é gerenciado como **Infraestrutura como Código (IaC)**, permitindo d
 
 ```mermaid
 flowchart LR
-    DEV["Feature Branch / PR"] --> GHA_VAL["GitHub Actions: Validate"]
-    GHA_VAL --> MERGE["Merge to main"]
-    MERGE --> GHA_DEP["GitHub Actions: Deploy Prod"]
-    GHA_DEP --> DBX["Databricks: Pipeline Atualizado"]
+    DEV[Feature Branch ou PR] --> GHA_VAL[GitHub Actions - Validate]
+    GHA_VAL --> MERGE[Merge para main]
+    MERGE --> GHA_DEP[GitHub Actions - Deploy Prod]
+    GHA_DEP --> DBX[Databricks - Pipeline Atualizado]
 ```
 
 * **`databricks.yml`**: Configuração central do bundle com definição de targets (`dev`, `prod`).
