@@ -1,0 +1,23 @@
+# Databricks local state & bundle build artifacts
+.databricks/
+.bundle/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AI Assistant & temporary files
+.gemini/
+.llm/
+pipeline_spec.json
+*.log
+rotaperfume/

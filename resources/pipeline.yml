@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    portfolio_lakehouse_pipeline:
+      name: "[${bundle.target}] Portfolio Lakehouse - Pipeline Medalhão"
+      catalog: portfolio_lakehouse
+      target: bronze
+      photon: true
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      libraries:
+        - notebook:
+            path: ../dlt_pipeline.py
+

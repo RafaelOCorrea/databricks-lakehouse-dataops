@@ -1,0 +1,20 @@
+bundle:
+  name: portfolio_lakehouse
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-791354f2-43a7.cloud.databricks.com
+      profile: portfolio_lakehouse
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-791354f2-43a7.cloud.databricks.com
+      profile: portfolio_lakehouse
+      root_path: /Workspace/Users/contato.rafaeloc@gmail.com/.bundle/${bundle.name}/${bundle.target}

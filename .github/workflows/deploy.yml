@@ -1,0 +1,65 @@
+name: "DataOps CI/CD - Databricks Lakehouse Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Pipeline Validation (Executado em PRs e Pushes para garantir sintaxe)
+  # ---------------------------------------------------------------------------
+  validate:
+    name: "Validar Databricks Asset Bundle"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate DABs (Ambiente Dev)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks bundle validate -t dev
+
+  # ---------------------------------------------------------------------------
+  # 2. Pipeline Deployment (Executado apenas em merges/push na branch main)
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: "Deploy em Produção"
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Deploy Bundle to Prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks bundle deploy -t prod
+
+      # Opcional: Disparar o pipeline automaticamente após o deploy
+      # - name: Trigger Pipeline Run
+      #   env:
+      #     DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      #   run: |
+      #     databricks bundle run portfolio_lakehouse_pipeline -t prod
+
