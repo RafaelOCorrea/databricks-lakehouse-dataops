@@ -12,24 +12,43 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 
 ## 🏗️ Arquitetura da Solução
 
-```mermaid
-graph TD
-    A["Volume Unity Catalog (df_sales.csv)"] --> B["Bronze (sales_raw)"]
-    B --> C["Silver View (sales_cleaned_view)"]
-    C --> D1["Silver (dim_produto)"]
-    C --> D2["Silver (dim_cliente)"]
-    C --> D3["Silver (dim_localizacao)"]
-    C --> D4["Silver (dim_modo_envio)"]
-    C --> F["Silver (ft_vendas)"]
-    F --> G1["Gold (vendas_por_categoria)"]
-    F --> G2["Gold (desempenho_regional)"]
-    F --> G3["Gold (metrica_clientes)"]
-    D1 --> G1
-    D3 --> G2
-    D2 --> G3
-    G1 --> H["Dashboards e Analytics"]
-    G2 --> H
-    G3 --> H
+```text
++-------------------------------------------------------------------------------+
+|                      0. INGESTÃO & STORAGE BRUTO                              |
+|              Volume Unity Catalog: /Volumes/.../df_sales.csv                  |
++-------------------------------------------------------------------------------+
+                                      │
+                                      ▼
++-------------------------------------------------------------------------------+
+|                       🥉 CAMADA BRONZE (RAW INGESTION)                        |
+|            sales_raw (Materialized View + Metadados de Auditoria)             |
++-------------------------------------------------------------------------------+
+                                      │
+                                      ▼
++-------------------------------------------------------------------------------+
+|                 🥈 CAMADA SILVER (LIMPEZA & STAR SCHEMA)                      |
+|       Visão de Preparo: sales_cleaned_view (Deduplicação & Tipagem Segura)    |
+|                                                                               |
+|   [dim_produto]      [dim_cliente]      [dim_localizacao]     [dim_modo_envio]|
+|         │                  │                    │                     │       |
+|         └──────────────────┴─────────┬──────────┴─────────────────────┘       |
+|                                      │                                        |
+|                              [ft_vendas (Fato)]                               |
++-------------------------------------------------------------------------------+
+                                      │
+                                      ▼
++-------------------------------------------------------------------------------+
+|                    🥇 CAMADA GOLD (DATA MARTS ANALÍTICOS)                     |
+|                                                                               |
+|  [vendas_por_categoria]    [desempenho_regional]      [metrica_clientes]      |
+|  (KPIs por Categoria)      (KPIs por Mercado/Região)  (Ticket Médio & Clientes|
++-------------------------------------------------------------------------------+
+                                      │
+                                      ▼
++-------------------------------------------------------------------------------+
+|                            📈 CAMADA DE CONSUMO                               |
+|                     Databricks Lakeview Dashboards / BI                       |
++-------------------------------------------------------------------------------+
 ```
 
 ---
@@ -75,12 +94,17 @@ Para garantir confiabilidade aos times de negócio e analistas, o pipeline possu
 
 O projeto é gerenciado como **Infraestrutura como Código (IaC)**, permitindo deploys automatizados entre ambientes de Desenvolvimento e Produção:
 
-```mermaid
-graph LR
-    A["Feature Branch / PR"] --> B["GitHub Actions: Validate"]
-    B --> C["Merge para main"]
-    C --> D["GitHub Actions: Deploy Prod"]
-    D --> E["Databricks: Pipeline Atualizado"]
+```text
+  [💻 Feature Branch / PR]
+             │
+             ▼
+  [🔍 GitHub Actions: Validate] (databricks bundle validate -t dev)
+             │
+             ▼ (Merge para main)
+  [🚀 GitHub Actions: Deploy Prod] (databricks bundle deploy -t prod)
+             │
+             ▼
+  [☁️ Databricks Lakehouse: Pipeline Atualizado]
 ```
 
 * **`databricks.yml`**: Configuração central do bundle com definição de targets (`dev`, `prod`).
