@@ -6,7 +6,7 @@
 ![PySpark](https://img.shields.io/badge/PySpark-3.5-E25A1C?logo=apachespark&logoColor=white)
 ![DataOps CI/CD](https://img.shields.io/badge/DataOps-GitHub_Actions_%2B_DABs-2088FF?logo=githubactions&logoColor=white)
 
-Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem (Lakehouse)** utilizando o **Databricks**, seguindo a arquitetura medalhão (**Bronze $\rightarrow$ Silver $\rightarrow$ Gold**), governança centralizada no **Unity Catalog**, validação automatizada de qualidade com **Delta Live Tables (DLT Expectations)** e esteira de **CI/CD / DataOps** via **Databricks Asset Bundles (DABs)**.
+Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem (Lakehouse)** utilizando o **Databricks**, seguindo a arquitetura medalhão (**Bronze -> Silver -> Gold**), governança centralizada no **Unity Catalog**, validação automatizada de qualidade com **Delta Live Tables (DLT Expectations)** e esteira de **CI/CD / DataOps** via **Databricks Asset Bundles (DABs)**.
 
 ---
 
@@ -14,41 +14,35 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 
 ```mermaid
 flowchart TD
-    subgraph Ingestao ["0. Ingestão & Armazenamento Bruto"]
-        RAW["📁 Volume Unity Catalog<br/>(/Volumes/.../df_sales.csv)"]
-    end
-
-    subgraph Bronze ["🥉 Camada Bronze (Raw Ingestion)"]
-        B1["sales_raw<br/>(Materialized View + Metadados de Auditoria)"]
-    end
-
-    subgraph Silver ["🥈 Camada Silver (Limpeza & Star Schema)"]
-        V_CLEAN["⚙️ sales_cleaned_view<br/>(Deduplicação, regex_replace & try_cast)"]
-        D_PROD["dim_produto"]
-        D_CLI["dim_cliente"]
-        D_LOC["dim_localizacao"]
-        D_ENV["dim_modo_envio"]
-        F_VENDAS["ft_vendas<br/>(Fato Normalizada)"]
-    end
-
-    subgraph Gold ["🥇 Camada Gold (Data Marts Analíticos)"]
-        G_CAT["vendas_por_categoria<br/>(KPIs por Categoria)"]
-        G_REG["desempenho_regional<br/>(KPIs por Mercado & Região)"]
-        G_CLI["metrica_clientes<br/>(Ticket Médio & Segmentos)"]
-    end
-
-    subgraph Consumo ["📈 Camada de Consumo"]
-        BI["📊 Databricks Lakeview Dashboards / BI"]
-    end
+    RAW["Volume Unity Catalog (df_sales.csv)"]
+    B1["Bronze: sales_raw (Auditoria)"]
+    V_CLEAN["Silver View: sales_cleaned_view"]
+    D_PROD["Silver: dim_produto"]
+    D_CLI["Silver: dim_cliente"]
+    D_LOC["Silver: dim_localizacao"]
+    D_ENV["Silver: dim_modo_envio"]
+    F_VENDAS["Silver: ft_vendas (Fato)"]
+    G_CAT["Gold: vendas_por_categoria"]
+    G_REG["Gold: desempenho_regional"]
+    G_CLI["Gold: metrica_clientes"]
+    BI["Dashboards / Analytics"]
 
     RAW --> B1
     B1 --> V_CLEAN
-    V_CLEAN --> D_PROD & D_CLI & D_LOC & D_ENV & F_VENDAS
-    F_VENDAS --> G_CAT & G_REG & G_CLI
+    V_CLEAN --> D_PROD
+    V_CLEAN --> D_CLI
+    V_CLEAN --> D_LOC
+    V_CLEAN --> D_ENV
+    V_CLEAN --> F_VENDAS
+    F_VENDAS --> G_CAT
+    F_VENDAS --> G_REG
+    F_VENDAS --> G_CLI
     D_PROD --> G_CAT
     D_LOC --> G_REG
     D_CLI --> G_CLI
-    G_CAT & G_REG & G_CLI --> BI
+    G_CAT --> BI
+    G_REG --> BI
+    G_CLI --> BI
 ```
 
 ---
@@ -62,9 +56,9 @@ Para garantir confiabilidade aos times de negócio e analistas, o pipeline possu
 | **Bronze** | `sales_raw` | `valid_primary_keys` | `@dlt.expect_or_drop` | Descartar registros sem `order_id` ou `product_id`. |
 | **Bronze** | `sales_raw` | `valid_source_file_metadata` | `@dlt.expect` | Monitorar metadados de rastreabilidade de origem. |
 | **Silver** | `ft_vendas` | `valid_positive_sales` | `@dlt.expect_or_drop` | Garantir que o valor das vendas seja estritamente positivo. |
-| **Silver** | `ft_vendas` | `valid_positive_quantity` | `@dlt.expect_or_drop` | Filtrar quantidades $\le 0$. |
+| **Silver** | `ft_vendas` | `valid_positive_quantity` | `@dlt.expect_or_drop` | Filtrar quantidades menores ou iguais a zero. |
 | **Silver** | `ft_vendas` | `valid_discount_range` | `@dlt.expect` | Monitorar descontos fora da faixa padrão (0 a 100%). |
-| **Silver** | `ft_vendas` | `valid_dates_chronology` | `@dlt.expect` | Validar se a data de envio é posterior/igual à data do pedido. |
+| **Silver** | `ft_vendas` | `valid_dates_chronology` | `@dlt.expect` | Validar se a data de envio é posterior ou igual à data do pedido. |
 | **Silver** | Dimensões | `valid_*_id` / `valid_location` | `@dlt.expect_or_drop` | Preservar integridade referencial nas dimensões. |
 | **Gold** | Data Marts | `valid_*_revenue` | `@dlt.expect` | Assegurar integridade dos KPIs agregados de receita. |
 
@@ -96,10 +90,10 @@ O projeto é gerenciado como **Infraestrutura como Código (IaC)**, permitindo d
 
 ```mermaid
 flowchart LR
-    DEV[💻 Feature Branch / PR] -->|git push / PR| GHA_VAL[🔍 GitHub Actions: Validate]
-    GHA_VAL -->|Sucesso| MERGE[🔀 Merge to main]
-    MERGE --> GHA_DEP[🚀 GitHub Actions: Deploy Prod]
-    GHA_DEP --> DBX[☁️ Databricks: Pipeline Atualizado]
+    DEV["Feature Branch / PR"] --> GHA_VAL["GitHub Actions: Validate"]
+    GHA_VAL --> MERGE["Merge to main"]
+    MERGE --> GHA_DEP["GitHub Actions: Deploy Prod"]
+    GHA_DEP --> DBX["Databricks: Pipeline Atualizado"]
 ```
 
 * **`databricks.yml`**: Configuração central do bundle com definição de targets (`dev`, `prod`).
@@ -117,8 +111,8 @@ flowchart LR
 
 ### 1. Clonar o Repositório
 ```bash
-git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
-cd SEU_REPOSITORIO
+git clone https://github.com/RafaelOCorrea/databricks-lakehouse-dataops.git
+cd databricks-lakehouse-dataops
 ```
 
 ### 2. Validar as Definições do Bundle
