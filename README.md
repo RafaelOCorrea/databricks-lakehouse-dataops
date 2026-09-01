@@ -13,36 +13,23 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 ## 🏗️ Arquitetura da Solução
 
 ```mermaid
-flowchart TD
-    RAW[Volume Unity Catalog - df_sales.csv]
-    B1[Bronze - sales_raw com Auditoria]
-    V_CLEAN[Silver View - Limpeza e Deduplicacao]
-    D_PROD[Silver - dim_produto]
-    D_CLI[Silver - dim_cliente]
-    D_LOC[Silver - dim_localizacao]
-    D_ENV[Silver - dim_modo_envio]
-    F_VENDAS[Silver - ft_vendas Fato]
-    G_CAT[Gold - vendas_por_categoria]
-    G_REG[Gold - desempenho_regional]
-    G_CLI[Gold - metrica_clientes]
-    BI[Dashboards e Analytics]
-
-    RAW --> B1
-    B1 --> V_CLEAN
-    V_CLEAN --> D_PROD
-    V_CLEAN --> D_CLI
-    V_CLEAN --> D_LOC
-    V_CLEAN --> D_ENV
-    V_CLEAN --> F_VENDAS
-    F_VENDAS --> G_CAT
-    F_VENDAS --> G_REG
-    F_VENDAS --> G_CLI
-    D_PROD --> G_CAT
-    D_LOC --> G_REG
-    D_CLI --> G_CLI
-    G_CAT --> BI
-    G_REG --> BI
-    G_CLI --> BI
+graph TD
+    A["Volume Unity Catalog (df_sales.csv)"] --> B["Bronze (sales_raw)"]
+    B --> C["Silver View (sales_cleaned_view)"]
+    C --> D1["Silver (dim_produto)"]
+    C --> D2["Silver (dim_cliente)"]
+    C --> D3["Silver (dim_localizacao)"]
+    C --> D4["Silver (dim_modo_envio)"]
+    C --> F["Silver (ft_vendas)"]
+    F --> G1["Gold (vendas_por_categoria)"]
+    F --> G2["Gold (desempenho_regional)"]
+    F --> G3["Gold (metrica_clientes)"]
+    D1 --> G1
+    D3 --> G2
+    D2 --> G3
+    G1 --> H["Dashboards e Analytics"]
+    G2 --> H
+    G3 --> H
 ```
 
 ---
@@ -89,11 +76,11 @@ Para garantir confiabilidade aos times de negócio e analistas, o pipeline possu
 O projeto é gerenciado como **Infraestrutura como Código (IaC)**, permitindo deploys automatizados entre ambientes de Desenvolvimento e Produção:
 
 ```mermaid
-flowchart LR
-    DEV[Feature Branch ou PR] --> GHA_VAL[GitHub Actions - Validate]
-    GHA_VAL --> MERGE[Merge para main]
-    MERGE --> GHA_DEP[GitHub Actions - Deploy Prod]
-    GHA_DEP --> DBX[Databricks - Pipeline Atualizado]
+graph LR
+    A["Feature Branch / PR"] --> B["GitHub Actions: Validate"]
+    B --> C["Merge para main"]
+    C --> D["GitHub Actions: Deploy Prod"]
+    D --> E["Databricks: Pipeline Atualizado"]
 ```
 
 * **`databricks.yml`**: Configuração central do bundle com definição de targets (`dev`, `prod`).
