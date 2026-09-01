@@ -22,18 +22,19 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 +-------------------------------------------------------------------------------+
 |                       🥉 CAMADA BRONZE (RAW INGESTION)                        |
 |            sales_raw (Materialized View + Metadados de Auditoria)             |
+|            * Preservação integral 'As-Is' (100% dos dados gravados)           |
 +-------------------------------------------------------------------------------+
                                       │
                                       ▼
 +-------------------------------------------------------------------------------+
-|                 🥈 CAMADA SILVER (LIMPEZA & STAR SCHEMA)                      |
+|                 🥈 CAMADA SILVER (LIMPEZA, DQ & STAR SCHEMA)                  |
 |       Visão de Preparo: sales_cleaned_view (Deduplicação & Tipagem Segura)    |
 |                                                                               |
 |   [dim_produto]      [dim_cliente]      [dim_localizacao]     [dim_modo_envio]|
 |         │                  │                    │                     │       |
 |         └──────────────────┴─────────┬──────────┴─────────────────────┘       |
 |                                      │                                        |
-|                              [ft_vendas (Fato)]                               |
+|                       [ft_vendas (Fato com Data Quality)]                     |
 +-------------------------------------------------------------------------------+
                                       │
                                       ▼
@@ -55,12 +56,14 @@ Este projeto implementa uma solução completa de **Engenharia de Dados em Nuvem
 
 ## 🛡️ Governança & Data Quality (DLT Expectations)
 
-Para garantir confiabilidade aos times de negócio e analistas, o pipeline possui regras ativas de qualidade de dados integradas ao fluxo de execução:
+Seguindo as melhores práticas da Arquitetura Medalhão:
+* **Camada Bronze:** Cópia fiel e imutável (*As-Is*) para garantir **replayability e auditoria**. Nenhum registro é descartado.
+* **Camada Silver:** Aplicação rigorosa de **Data Quality (`@dlt.expect_or_drop`)**, filtrando anomalias antes do consumo analítico.
 
 | Camada | Tabela | Regra de Qualidade | Tipo | Objetivo de Negócio |
 | :--- | :--- | :--- | :--- | :--- |
-| **Bronze** | `sales_raw` | `valid_primary_keys` | `@dlt.expect_or_drop` | Descartar registros sem `order_id` ou `product_id`. |
-| **Bronze** | `sales_raw` | `valid_source_file_metadata` | `@dlt.expect` | Monitorar metadados de rastreabilidade de origem. |
+| **Bronze** | `sales_raw` | `valid_source_file_metadata` | `@dlt.expect` | Monitorar metadados de rastreabilidade e carga integral sem descarte. |
+| **Silver** | `ft_vendas` | `valid_primary_keys` | `@dlt.expect_or_drop` | Descartar registros sem `order_id` ou `product_id`. |
 | **Silver** | `ft_vendas` | `valid_positive_sales` | `@dlt.expect_or_drop` | Garantir que o valor das vendas seja estritamente positivo. |
 | **Silver** | `ft_vendas` | `valid_positive_quantity` | `@dlt.expect_or_drop` | Filtrar quantidades menores ou iguais a zero. |
 | **Silver** | `ft_vendas` | `valid_discount_range` | `@dlt.expect` | Monitorar descontos fora da faixa padrão (0 a 100%). |
@@ -68,9 +71,9 @@ Para garantir confiabilidade aos times de negócio e analistas, o pipeline possu
 | **Silver** | Dimensões | `valid_keys` | `@dlt.expect_or_drop` | Preservar integridade referencial nas dimensões. |
 | **Gold** | Data Marts | `valid_revenue` | `@dlt.expect` | Assegurar integridade dos KPIs agregados de receita. |
 
-### 📈 Resultados Reais de Qualidade de Dados:
-* **Taxa de Conformidade:** **99,4%** (50.951 registros aprovados e materializados)
-* **Anomalias Tratadas:** **0,6%** (301 registros inválidos/corrompidos descartados automaticamente na borda)
+### 📈 Resultados Reais de Qualidade de Dados na Camada Silver:
+* **Taxa de Conformidade:** **99,4%** (50.951 registros limpos e materializados)
+* **Anomalias Tratadas:** **0,6%** (301 registros inválidos/corrompidos descartados automaticamente na borda Silver)
 
 ---
 

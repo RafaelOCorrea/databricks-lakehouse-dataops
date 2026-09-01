@@ -18,13 +18,14 @@ from pyspark.sql.functions import (
 )
 
 # -------------------------------------------------------------------------
-# 1. CAMADA BRONZE (Leitura do Volume e Ingestão com Metadados)
+# 1. CAMADA BRONZE (Ingestão Fiel 'As-Is' do Volume + Metadados de Auditoria)
 # -------------------------------------------------------------------------
+# Conforme boas práticas de Arquitetura Medalhão, a Bronze NÃO descarta dados.
+# Toda a carga bruta é preservada fielmente para fins de histórico e auditoria.
 @dlt.table(
     name="portfolio_lakehouse.bronze.sales_raw",
-    comment="Dados brutos de vendas ingeridos a partir do Volume Unity Catalog com auditoria"
+    comment="Cópia fiel e bruta de vendas ingerida a partir do Volume com metadados técnicos"
 )
-@dlt.expect_or_drop("valid_primary_keys", "order_id IS NOT NULL AND product_id IS NOT NULL")
 @dlt.expect("valid_source_file_metadata", "_source_file IS NOT NULL")
 def sales_raw():
     return (
@@ -37,7 +38,7 @@ def sales_raw():
     )
 
 # -------------------------------------------------------------------------
-# 2. CAMADA SILVER (Limpeza, Deduplicação e Modelagem Star Schema)
+# 2. CAMADA SILVER (Limpeza, Tipagem, Data Quality & Modelagem Star Schema)
 # -------------------------------------------------------------------------
 @dlt.view(
     name="sales_cleaned_view",
@@ -99,8 +100,9 @@ def dim_modo_envio():
 
 @dlt.table(
     name="portfolio_lakehouse.silver.ft_vendas",
-    comment="Tabela Fato Vendas com regras rigorosas de qualidade de dados"
+    comment="Tabela Fato Vendas com regras rigorosas de qualidade e governança"
 )
+@dlt.expect_or_drop("valid_primary_keys", "order_id IS NOT NULL AND product_id IS NOT NULL")
 @dlt.expect_or_drop("valid_positive_sales", "sales > 0")
 @dlt.expect_or_drop("valid_positive_quantity", "quantity > 0")
 @dlt.expect("valid_discount_range", "discount >= 0 AND discount <= 1.0")
@@ -126,7 +128,7 @@ def ft_vendas():
     )
 
 # -------------------------------------------------------------------------
-# 3. CAMADA GOLD (Data Marts Analíticos com Validações de Métricas de Negócio)
+# 3. CAMADA GOLD (Data Marts Analíticos para BI e Dashboards)
 # -------------------------------------------------------------------------
 @dlt.table(
     name="portfolio_lakehouse.gold.vendas_por_categoria",
